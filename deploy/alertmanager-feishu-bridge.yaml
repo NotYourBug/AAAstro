@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-inspector-alert-bridge
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: k8s-inspector-alert-bridge
+  template:
+    metadata:
+      labels:
+        app: k8s-inspector-alert-bridge
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: bridge
+          image: your-registry/k8s-inspector:0.1.0
+          imagePullPolicy: IfNotPresent
+          command:
+            - python
+            - -m
+            - k8s_inspector.alertmanager_bridge
+          env:
+            - name: FEISHU_MODE
+              value: "app"
+            - name: FEISHU_WEBHOOK
+              valueFrom:
+                secretKeyRef:
+                  name: k8s-inspector-feishu
+                  key: feishu_webhook
+                  optional: true
+            - name: FEISHU_APP_ID
+              valueFrom:
+                secretKeyRef:
+                  name: k8s-inspector-feishu
+                  key: app_id
+            - name: FEISHU_APP_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: k8s-inspector-feishu
+                  key: app_secret
+            - name: FEISHU_ALERT_USER_OPEN_IDS
+              valueFrom:
+                secretKeyRef:
+                  name: k8s-inspector-feishu
+                  key: alert_user_open_ids
+            - name: FEISHU_CHAT_NAME_TEMPLATE
+              value: "K8s告警-{cluster}-{alertname}"
+            - name: FEISHU_CHAT_RESOLVED_SUFFIX
+              value: "[已解决]"
+            - name: FEISHU_CHAT_STATE_PATH
+              value: "/data/state/feishu_chats.json"
+            - name: INSPECTOR_REPORT_DIR
+              value: "/data/out"
+            - name: INSPECTOR_REPORT_MAX_RESULTS
+              value: "5"
+            - name: INSPECTOR_REPORT_MAX_ITEMS
+              value: "3"
+          ports:
+            - name: http
+              containerPort: 8000
+          volumeMounts:
+            - name: state
+              mountPath: /data/state
+            - name: out
+              mountPath: /data/out
+              readOnly: true
+      volumes:
+        - name: state
+          emptyDir: {}
+        - name: out
+          persistentVolumeClaim:
+            claimName: k8s-inspector-out
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: k8s-inspector-alert-bridge
+  namespace: kube-system
+spec:
+  selector:
+    app: k8s-inspector-alert-bridge
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http

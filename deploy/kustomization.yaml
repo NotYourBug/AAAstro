@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: kube-system
+
+resources:
+  - storage/pv-nfs.yaml
+  - storage/pvc-k8s-inspector-out.yaml
+  - rbac.yaml
+  - pushgateway.yaml
+  - monitoring-alertmanager.yaml
+  - monitoring-prometheus.yaml
+  - alertmanager-feishu-bridge.yaml
+  - cronjobs-by-frequency.yaml
+  - cleanup-cronjob.yaml

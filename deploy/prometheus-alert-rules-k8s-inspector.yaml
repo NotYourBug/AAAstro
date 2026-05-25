@@ -1,0 +1,187 @@
+groups:
+  - name: k8s-inspector
+    rules:
+      - alert: K8sInspectorStale
+        expr: |
+          (
+            time() - max by (cluster, profile) (k8s_inspector_last_run_timestamp{profile="5m"})
+          ) > 900
+          or
+          (
+            time() - max by (cluster, profile) (k8s_inspector_last_run_timestamp{profile="10m"})
+          ) > 1800
+          or
+          (
+            time() - max by (cluster, profile) (k8s_inspector_last_run_timestamp{profile="hourly"})
+          ) > 7200
+          or
+          (
+            time() - max by (cluster, profile) (k8s_inspector_last_run_timestamp{profile=~"daily|full"})
+          ) > 129600
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "巡检任务未按预期运行（stale）"
+          description: "k8s-inspector 在对应 profile 的 last_run 超过阈值未更新"
+
+      - alert: K8sInspectorHasFail
+        expr: |
+          (
+            max by (cluster, profile) (k8s_inspector_report_summary{status="fail",profile="5m"}) > 0
+          )
+          and on (cluster, profile)
+          (
+            time() - max by (cluster, profile) (k8s_inspector_last_run_timestamp{profile=
+            "5m"}) < 900
+          )
+          or
+          (
+            max by (cluster, profile) (k8s_inspector_report_summary{status="fail",profile="10m"}) > 0
+          )
+          and on (cluster, profile)
+          (
+            time() - max by (cluster, profile) (k8s_inspector_last_run_timestamp{profile="10m"}) < 1800
+          )
+          or
+          (
+            max by (cluster, profile) (k8s_inspector_report_summary{status="fail",profile="hourly"}) > 0
+          )
+          and on (cluster, profile)
+          (
+            time() - max by (cluster, profile) (k8s_inspector_last_run_timestamp{profile="hourly"}) < 7200
+          )
+          or
+          (
+            max by (cluster, profile) (k8s_inspector_report_summary{status="fail",profile=~"daily|full"}) > 0
+          )
+          and on (cluster, profile)
+          (
+            time() - max by (cluster, profile) (k8s_inspector_last_run_timestamp{profile=~"daily|full"}) < 129600
+          )
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "巡检发现 FAIL"
+          description: "k8s-inspector report_summary{status=fail} > 0"
+
+      - alert: K8sInspectorHasWarn
+        expr: |
+          (
+            max by (cluster, profile) (k8s_inspector_report_summary{status="warn",profile="5m"}) > 0
+          )
+          and on (cluster, profile)
+          (
+            time() - max by (cluster, profile) (k8s_inspector_last_run_timestamp{profile="5m"}) < 900
+          )
+          or
+          (
+            max by (cluster, profile) (k8s_inspector_report_summary{status="warn",profile="10m"}) > 0
+          )
+          and on (cluster, profile)
+          (
+            time() - max by (cluster, profile) (k8s_inspector_last_run_timestamp{profile="10m"}) < 1800
+          )
+          or
+          (
+            max by (cluster, profile) (k8s_inspector_report_summary{status="warn",profile="hourly"}) > 0
+          )
+          and on (cluster, profile)
+          (
+            time() - max by (cluster, profile) (k8s_inspector_last_run_timestamp{profile="hourly"}) < 7200
+          )
+          or
+          (
+            max by (cluster, profile) (k8s_inspector_report_summary{status="warn",profile=~"daily|full"}) > 0
+          )
+          and on (cluster, profile)
+          (
+            time() - max by (cluster, profile) (k8s_inspector_last_run_timestamp{profile=~"daily|full"}) < 129600
+          )
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "巡检发现 WARN"
+          description: "k8s-inspector report_summary{status=warn} > 0"
+
+      - alert: K8sInspectorCheckFail
+        expr: |
+          (
+            max by (cluster, profile, check) (k8s_inspector_check_status{profile="5m"}) == 2
+          )
+          and on (cluster, profile)
+          (
+            time() - max by (cluster, profile) (k8s_inspector_last_run_timestamp{profile="5m"}) < 900
+          )
+          or
+          (
+            max by (cluster, profile, check) (k8s_inspector_check_status{profile="10m"}) == 2
+          )
+          and on (cluster, profile)
+          (
+            time() - max by (cluster, profile) (k8s_inspector_last_run_timestamp{profile="10m"}) < 1800
+          )
+          or
+          (
+            max by (cluster, profile, check) (k8s_inspector_check_status{profile="hourly"}) == 2
+          )
+          and on (cluster, profile)
+          (
+            time() - max by (cluster, profile) (k8s_inspector_last_run_timestamp{profile="hourly"}) < 7200
+          )
+          or
+          (
+            max by (cluster, profile, check) (k8s_inspector_check_status{profile=~"daily|full"}) == 2
+          )
+          and on (cluster, profile)
+          (
+            time() - max by (cluster, profile) (k8s_inspector_last_run_timestamp{profile=~"daily|full"}) < 129600
+          )
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "检查项 FAIL"
+          description: "check={{ $labels.check }} 返回 FAIL（2）"
+
+      - alert: K8sInspectorPendingPVC
+        expr: |
+          (
+            max by (cluster, profile) (k8s_inspector_check_issue_count{check="pvcs",issue="pending",profile="5m"}) > 0
+          )
+          and on (cluster, profile)
+          (
+            time() - max by (cluster, profile) (k8s_inspector_last_run_timestamp{profile="5m"}) < 900
+          )
+          or
+          (
+            max by (cluster, profile) (k8s_inspector_check_issue_count{check="pvcs",issue="pending",profile="10m"}) > 0
+          )
+          and on (cluster, profile)
+          (
+            time() - max by (cluster, profile) (k8s_inspector_last_run_timestamp{profile="10m"}) < 1800
+          )
+          or
+          (
+            max by (cluster, profile) (k8s_inspector_check_issue_count{check="pvcs",issue="pending",profile="hourly"}) > 0
+          )
+          and on (cluster, profile)
+          (
+            time() - max by (cluster, profile) (k8s_inspector_last_run_timestamp{profile="hourly"}) < 7200
+          )
+          or
+          (
+            max by (cluster, profile) (k8s_inspector_check_issue_count{check="pvcs",issue="pending",profile=~"daily|full"}) > 0
+          )
+          and on (cluster, profile)
+          (
+            time() - max by (cluster, profile) (k8s_inspector_last_run_timestamp{profile=~"daily|full"}) < 129600
+          )
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "存在 Pending PVC"
+          description: "pending pvc > 0"

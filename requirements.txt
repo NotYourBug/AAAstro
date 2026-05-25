@@ -1,0 +1,4 @@
+kubernetes>=29.0.0
+PyYAML>=6.0.1
+prometheus-client>=0.20.0
+lark-oapi>=1.4.10

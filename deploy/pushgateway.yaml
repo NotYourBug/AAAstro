@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pushgateway
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pushgateway
+  template:
+    metadata:
+      labels:
+        app: pushgateway
+    spec:
+      containers:
+        - name: pushgateway
+          image: prom/pushgateway:v1.8.0
+          ports:
+            - name: http
+              containerPort: 9091
+          args:
+            - --web.listen-address=:9091
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pushgateway
+  namespace: kube-system
+spec:
+  selector:
+    app: pushgateway
+  ports:
+    - name: http
+      port: 9091
+      targetPort: http
+      # 不加type，咱就默认是ClusterIP（集群内部通信用）

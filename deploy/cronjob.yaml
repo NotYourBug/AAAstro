@@ -1,0 +1,45 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: k8s-inspector
+  namespace: kube-system
+spec:
+  schedule: "*/30 * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: k8s-inspector
+          restartPolicy: Never
+          containers:
+            - name: inspector
+              image: your-registry/k8s-inspector:0.1.0
+              imagePullPolicy: IfNotPresent
+              args:
+                - run
+                - --in-cluster
+                - --formats
+                - json,html
+                - --output-dir
+                - /data/out/archive/daily
+                - --archive
+                - daily
+              env:
+                - name: INSPECTOR_EXIT_MODE
+                  value: "always0"
+                - name: INSPECTOR_CLUSTER
+                  value: "YOUR_CLUSTER_NAME"
+                - name: FEISHU_WEBHOOK
+                  value: ""
+                - name: PUSHGATEWAY_URL
+                  value: "http://pushgateway.kube-system.svc:9091"
+                - name: PUSHGATEWAY_JOB
+                  value: "k8s-inspector"
+              volumeMounts:
+                - name: out
+                  mountPath: /data/out
+          volumes:
+            - name: out
+              persistentVolumeClaim:
+                claimName: k8s-inspector-out

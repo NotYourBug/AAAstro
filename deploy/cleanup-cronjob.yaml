@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: k8s-inspector-cleanup
+  namespace: kube-system
+spec:
+  schedule: "30 3 * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: k8s-inspector
+          restartPolicy: Never
+          containers:
+            - name: cleanup
+              image: your-registry/k8s-inspector:0.1.0
+              imagePullPolicy: IfNotPresent
+              args:
+                - cleanup
+                - --root
+                - /data/out/archive
+                - --hourly-days
+                - "7"
+                - --daily-days
+                - "30"
+              env:
+                - name: INSPECTOR_EXIT_MODE
+                  value: "always0"
+              volumeMounts:
+                - name: out
+                  mountPath: /data/out
+          volumes:
+            - name: out
+              persistentVolumeClaim:
+                claimName: k8s-inspector-out

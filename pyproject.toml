@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "k8s-inspector"
+version = "0.1.0"
+description = "Kubernetes cluster inspection tool for SRE"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+  "kubernetes>=29.0.0",
+  "PyYAML>=6.0.1",
+  "prometheus-client>=0.20.0",
+  "lark-oapi>=1.4.10",
+]
+
+[project.scripts]
+k8s-inspector = "k8s_inspector.cli:main"
+
+[tool.setuptools]
+packages = ["k8s_inspector"]

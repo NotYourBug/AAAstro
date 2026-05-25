@@ -1,0 +1,27 @@
+route:
+  receiver: feishu-bridge
+  group_by: ["alertname", "cluster", "profile", "check"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 2h
+  routes:
+    - matchers:
+        - severity="critical"
+      receiver: feishu-bridge
+    - matchers:
+        - severity="warning"
+      receiver: feishu-bridge
+
+inhibit_rules:
+  - source_matchers:
+      - alertname="K8sInspectorStale"
+    target_matchers:
+      - alertname=~"K8sInspectorHasFail|K8sInspectorHasWarn|K8sInspectorCheckFail|K8sInspectorPendingPVC"
+    equal: ["cluster", "profile"]
+
+# 这里配置的就是接收告警的接收器，将告警推送到feishu-bridge服务，处理好之后再发送到飞书群聊
+receivers:
+  - name: feishu-bridge
+    webhook_configs:  
+      - url: http://k8s-inspector-alert-bridge.kube-system.svc:8000/alert
+        send_resolved: true

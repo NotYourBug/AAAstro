@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: k8s-inspector-alertmanager-config
+  namespace: kube-system
+data:
+  alertmanager.yml: |
+    route:
+      receiver: feishu-bridge
+      group_by: ["alertname", "cluster", "profile", "check"]
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 2h
+      routes:
+        - matchers:
+            - severity="critical"
+          receiver: feishu-bridge
+        - matchers:
+            - severity="warning"
+          receiver: feishu-bridge
+
+    inhibit_rules:
+      - source_matchers:
+          - alertname="K8sInspectorStale"
+        target_matchers:
+          - alertname=~"K8sInspectorHasFail|K8sInspectorHasWarn|K8sInspectorCheckFail|K8sInspectorPendingPVC"
+        equal: ["cluster", "profile"]
+
+    receivers:
+      - name: feishu-bridge
+        webhook_configs:
+          - url: http://k8s-inspector-alert-bridge.kube-system.svc:8000/alert
+            send_resolved: true
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alertmanager
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alertmanager
+  template:
+    metadata:
+      labels:
+        app: alertmanager
+    spec:
+      containers:
+        - name: alertmanager
+          image: prom/alertmanager:v0.27.0
+          args:
+            - --config.file=/etc/alertmanager/alertmanager.yml
+            - --storage.path=/alertmanager
+          ports:
+            - name: http
+              containerPort: 9093
+          volumeMounts:
+            - name: config
+              mountPath: /etc/alertmanager/alertmanager.yml
+              subPath: alertmanager.yml
+            - name: data
+              mountPath: /alertmanager
+      volumes:
+        - name: config
+          configMap:
+            name: k8s-inspector-alertmanager-config
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager
+  namespace: kube-system
+spec:
+  selector:
+    app: alertmanager
+  ports:
+    - name: http
+      port: 9093
+      targetPort: http
